@@ -10,12 +10,13 @@ import sys
 reload(sys)
 sys.setdefaultencoding("utf-8")
 
+"""
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
                     datefmt='%d-%m-%Y:%H:%M:%S',
                     filename='testing/example.log',
                     level=logging.DEBUG)
 logger = logging.getLogger('data_utils')
-
+"""
 
 class CBTData(object):
     def __init__(self,
@@ -27,7 +28,8 @@ class CBTData(object):
                  max_vocab_size=None,
                  max_data_points=None,
                  log_every_n_data_points=5000,
-                 query_in_line_number=21):
+                 query_in_line_number=21,
+                 logger=None):
 
         self.vocab_file = vocab_file
         self.w2i_file = w2i_file
@@ -40,6 +42,7 @@ class CBTData(object):
         self.max_data_points = max_data_points
         self.log_every_n_data_points = log_every_n_data_points
         self.query_in_line_number = query_in_line_number
+        self.logger = logger
 
     def build_new_vocabulary_and_save(self,
                                       data_files,
@@ -53,7 +56,7 @@ class CBTData(object):
                                                           self.max_data_points)
 
         # Save the vocabulary in vocab_file
-        logger.info("Saving vocab to file {}".format(self.vocab_file))
+        self.logger.info("Saving vocab to file {}".format(self.vocab_file))
         self.vocab_file = vocab_file
         # clear the content of a previous vocab file if it exists
         if os.path.exists(self.vocab_file):
@@ -61,7 +64,7 @@ class CBTData(object):
 
         with open(self.vocab_file, 'w+') as f:
             pickle.dump(self.vocabulary, f)
-        logger.info("Done saving vocab to file")
+        self.logger.info("Done saving vocab to file")
 
     def build_new_w2i_from_existing_vocab_and_save(self, w2i_file):
 
@@ -73,7 +76,7 @@ class CBTData(object):
             self.w2i[w] = i
 
         # save the w2i file
-        logger.info("Saving w2i to file {}".format(self.w2i))
+        self.logger.info("Saving w2i to file {}".format(self.w2i_file))
         self.w2i_file = w2i_file
         # clear the content of a previous vocab file if it exists
         if os.path.exists(self.w2i_file):
@@ -81,18 +84,18 @@ class CBTData(object):
 
         with open(self.w2i_file, "w+") as f:
             pickle.dump(self.w2i, f)
-        logger.info("Done saving w2i to file")
+        self.logger.info("Done saving w2i to file")
 
     def get_vocab(self):
         if self.vocabulary is None:
-            logger.error("Vocabulary is not yet initialized")
+            self.logger.error("Vocabulary is not yet initialized")
             raise ValueError
         else:
             return self.vocabulary
 
     def get_w2i(self):
         if self.w2i is None:
-            logger.error("w2i is not yet initialized")
+            self.logger.error("w2i is not yet initialized")
             raise ValueError
         else:
             return self.w2i
@@ -137,7 +140,7 @@ class CBTData(object):
 
                         data_points += 1
                         if data_points % self.log_every_n_data_points == 0:
-                            logger.info("get_data: completed = {} data_points".format(data_points))
+                            self.logger.info("get_data: completed = {} data_points".format(data_points))
                     else:
                         tokenized_sentence = self._process_sentence(line)
                         current_context.extend(tokenized_sentence)
@@ -172,7 +175,7 @@ class CBTData(object):
                         vocab.update([answer])
                         data_points += 1
                         if data_points % self.log_every_n_data_points == 0:
-                            logger.info("_build_vocab: completed = {} data_points".format(data_points))
+                            self.logger.info("_build_vocab: completed = {} data_points".format(data_points))
                     else:
                         tokenized_sentence = self._process_sentence(line)
                         vocab.update(tokenized_sentence)
