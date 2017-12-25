@@ -29,7 +29,10 @@ GRU_INPUT_DIM = EMB_DIM
 GRU_HIDDEN_DIM = 128
 
 # training parameters
-n_epochs
+N_EPOCHS = 10
+ADAM_ALPHA = 0.01
+MINIBATCH_SIZE = 16
+
 """
 
 def get_logger():
@@ -76,10 +79,12 @@ def main():
                        logger=logger,
                        max_data_points=1000)
 
+    # Create vocabulary
     logger.info("Creating vocabulary")
     cbt_data.build_new_vocabulary_and_save(train_files, vocab_file)
     logger.info("Done creating vocabulary")
 
+    # Create w2i
     logger.info("Creating w2i file")
     cbt_data.build_new_w2i_from_existing_vocab_and_save(w2i_file)
     logger.info("Done creating w2i file")
@@ -95,14 +100,21 @@ def main():
     GRU_LAYERS = 1
     GRU_INPUT_DIM = EMB_DIM
     GRU_HIDDEN_DIM = 128
+    ADAM_ALPHA = 0.01
+    MINIBATCH_SIZE = 16
+    N_EPOCHS = 2
     as_reader = ASReader(vocab_size=len(cbt_data.get_vocab()),
                          embedding_dim=EMB_DIM,
                          gru_layers=GRU_LAYERS,
                          gru_input_dim=GRU_INPUT_DIM,
                          gru_hidden_dim=GRU_HIDDEN_DIM,
-                         n_epochs=2,
+                         adam_alpha=ADAM_ALPHA,
+                         minibatch_size=MINIBATCH_SIZE,
+                         n_epochs=N_EPOCHS,
                          logger=logger,
                          w2i=cbt_data.get_w2i())
+
+    # fit the model
     as_reader.fit(X_train, y_train)
 
 
