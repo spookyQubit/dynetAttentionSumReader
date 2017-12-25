@@ -103,6 +103,7 @@ def main():
                          n_epochs=2,
                          logger=logger,
                          w2i=cbt_data.get_w2i())
+    as_reader.fit(X_train, y_train)
 
 
 if __name__ == "__main__":

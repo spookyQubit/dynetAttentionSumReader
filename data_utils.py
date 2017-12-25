@@ -10,13 +10,13 @@ import sys
 reload(sys)
 sys.setdefaultencoding("utf-8")
 
-"""
+
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
                     datefmt='%d-%m-%Y:%H:%M:%S',
                     filename='testing/example.log',
                     level=logging.DEBUG)
 logger = logging.getLogger('data_utils')
-"""
+
 
 class CBTData(object):
     def __init__(self,

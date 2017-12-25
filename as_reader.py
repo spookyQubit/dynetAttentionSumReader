@@ -10,33 +10,38 @@ class ASReader(object):
                  gru_layers,
                  gru_input_dim,
                  gru_hidden_dim,
+                 w2i,
                  n_epochs=10,
-                 logger=None,
-                 w2i=None):
+                 logger=None):
 
         self.vocab_size = vocab_size
         self.embedding_dim = embedding_dim
         self.gru_layers = gru_layers
         self.gru_input_dim = gru_input_dim
         self.gru_hidden_dim = gru_hidden_dim
+        self.w2i = w2i
         self.n_epochs = n_epochs
         self.logger = logger
-        self.w2i = w2i
 
         assert(self.gru_input_dim == self.embedding_dim)
 
         self.model, self.f_builder, self.b_builder, self.model_parameters = self._create_model()
 
     def fit(self, X, y):
-        pass
+        self.train(X, y, self.w2i)
 
-    def train(self):
-        pass
+    def train(self, X, y, w2i):
+        self.logger.info("Starting to train")
+
+        self.logger.info("Starting to train")
 
     def predict(self):
         pass
 
     def load_model(self):
+        pass
+
+    def save_model(self):
         pass
 
     def _create_model(self):
