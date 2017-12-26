@@ -81,7 +81,9 @@ def main():
 
     # Create vocabulary
     logger.info("Creating vocabulary")
-    cbt_data.build_new_vocabulary_and_save(train_files, vocab_file)
+    # Note that the vocab is created from the tran and valid data
+    # When testing, the testing data also needs to be used to build vocab
+    cbt_data.build_new_vocabulary_and_save(train_files + valid_files, vocab_file)
     logger.info("Done creating vocabulary")
 
     # Create w2i
