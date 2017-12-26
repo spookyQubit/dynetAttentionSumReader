@@ -61,19 +61,22 @@ class ASReader(object):
         q_f_init = self.quest_f_rnn.initial_state()
         q_b_init = self.quest_b_rnn.initial_state()
         q_wemb = [self._word_rep(w, w2i) for w in question]
-        q_f_exps = q_f_init.transduce(q_wemb)
-        q_b_exps = q_b_init.transduce(reversed(q_wemb))
+        q_f_exps_last = q_f_init.transduce(q_wemb)[-1]
+        q_b_exps_last = q_b_init.transduce(reversed(q_wemb))[-1]
         # biGru state for question
-        q_bi = [dy.concatenate([f, b]) for f, b in zip(q_f_exps,
-                                                       reversed(q_b_exps))]
+        q_bi = dy.concatenate([q_f_exps_last, q_b_exps_last])
 
         # for each context, calculate the score
+        candidate_scores = []
+        for candidate in candidates:
+            # get all indices of the candidate in the context
+            candidate_indices = [i for i, x in enumerate(context) if x == candidate]
+            # calculate the sum of attentions from all the positions where the current candidate occurs
+            candidate_score = dy.esum([dy.dot_product(c_bi[i], q_bi) for i in candidate_indices])
+            candidate_scores.append(candidate_score)
 
-
-
-
-
-        pass
+        candidate_scores_exp = dy.concatenate([score_exp for score_exp in candidate_scores])
+        return candidate_scores_exp
 
     def train(self, X, y, w2i):
         self.logger.info("Starting to train")
@@ -90,13 +93,23 @@ class ASReader(object):
                 # Renew the computational graph
                 dy.renew_cg()
 
+                y_true_id = 0 # the 0th index in candidates is the true answer
                 losses = [dy.pickneglogsoftmax(self._get_loss_exp_for_one_instance(X[batch_indices[i]],
                                                                                    y[batch_indices[i]],
-                                                                                   w2i) for i in range(self.minibatch_size))]
+                                                                                   w2i), y_true_id)
+                          for i in range(self.minibatch_size)]
                 loss = dy.esum(losses)
-                loss.forward()
+                total_loss += loss.value() # forward computation
                 loss.backward()
                 trainer.update()
+                if minibatch == 500:
+                    self.logger.info('Epoch {}/{}, minibatch = {} , total_loss = {}'.format(epoch + 1,
+                                                                                            self.n_epochs,
+                                                                                            minibatch,
+                                                                                            total_loss))
+            trainer.update_epoch()
+            total_loss /= len(y)
+            self.logger.info('Epoch {}/{}, total_loss = {}'.format(epoch + 1, self.n_epochs, total_loss))
 
         self.logger.info("Done training")
 

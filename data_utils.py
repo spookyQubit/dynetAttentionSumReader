@@ -130,9 +130,9 @@ class CBTData(object):
                     elif (line_number + 1) % (self.query_in_line_number + 1) == self.query_in_line_number:
                         tokenized_question, answer, candidate_answers = self._process_query_line(line)
 
-                        x = [{"context": current_context,
-                              "question": tokenized_question,
-                              "candidates": candidate_answers}]
+                        x = {"context": current_context,
+                             "question": tokenized_question,
+                             "candidates": candidate_answers}
 
                         X.append(x)
                         answers.append(answer)

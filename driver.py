@@ -77,13 +77,12 @@ def main():
     cbt_data = CBTData(vocab_file=vocab_file,
                        w2i_file=w2i_file,
                        logger=logger,
-                       max_data_points=1000)
+                       max_data_points=10000)
 
     # Create vocabulary
     logger.info("Creating vocabulary")
-    # Note that the vocab is created from the tran and valid data
-    # When testing, the testing data also needs to be used to build vocab
-    cbt_data.build_new_vocabulary_and_save(train_files + valid_files, vocab_file)
+    # Note that the vocab should be created from train + valid + test files
+    cbt_data.build_new_vocabulary_and_save(train_files, vocab_file)
     logger.info("Done creating vocabulary")
 
     # Create w2i
