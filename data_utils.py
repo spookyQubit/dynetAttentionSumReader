@@ -10,13 +10,13 @@ import sys
 reload(sys)
 sys.setdefaultencoding("utf-8")
 
-
+"""
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
                     datefmt='%d-%m-%Y:%H:%M:%S',
                     filename='testing/example.log',
                     level=logging.DEBUG)
 logger = logging.getLogger('data_utils')
-
+"""
 
 class CBTData(object):
     def __init__(self,
@@ -100,6 +100,13 @@ class CBTData(object):
         else:
             return self.w2i
 
+    def get_data_and_save(self, data_files, data_save_file):
+        X, y = self.get_data(data_files)
+        with open(data_save_file, "w+") as f:
+            pickle.dump({"X": X, "y": y}, f)
+        self.logger.info("Done saving data to file")
+        return X, y
+
     def get_data(self, data_files):
 
         max_data_points = self.max_data_points
@@ -134,6 +141,9 @@ class CBTData(object):
                              "question": tokenized_question,
                              "candidates": candidate_answers}
 
+                        if not self._is_ok(x, answer):
+                            continue
+
                         X.append(x)
                         answers.append(answer)
                         current_context = []
@@ -146,6 +156,82 @@ class CBTData(object):
                         current_context.extend(tokenized_sentence)
 
         return X, answers
+
+    def load_vocabulary(self, vocab_file):
+        if not os.path.exists(vocab_file):
+            self.logger.error("{} vocab file does not exist".format(vocab_file))
+            raise ValueError
+
+        with open(vocab_file, "rb") as f:
+            self.vocabulary = pickle.load(f)
+            self.logger.info("Vocabulary size = {}".format(len(self.vocabulary)))
+            if len(self.vocabulary) == 0:
+                self.logger.error("{} vocab file is empty".format(vocab_file))
+                raise ValueError
+        return
+
+    def load_w2i(self, w2i_file):
+        if not os.path.exists(w2i_file):
+            self.logger.error("{} w2i file does not exist".format(w2i_file))
+            raise ValueError
+
+        with open(w2i_file, "rb") as f:
+            self.w2i = pickle.load(f)
+            self.logger.info("w2i size = {}".format(len(self.w2i)))
+            if len(self.w2i) == 0:
+                self.logger.error("{} w2i file is empty".format(w2i_file))
+                raise ValueError
+        return
+
+    def load_data(self, data_save_file):
+        if not os.path.exists(data_save_file):
+            self.logger.error("{} data_save_file does not exist".format(data_save_file))
+            raise ValueError
+
+        with open(data_save_file, "rb") as f:
+            d = pickle.load(f)
+            if "X" not in d:
+                self.logger.error("{} the data file does not contain X!".format(data_save_file))
+                raise ValueError
+            if "y" not in d:
+                self.logger.error("{} the data file does not contain y!".format(data_save_file))
+                raise ValueError
+
+            X = d["X"]
+            y = d["y"]
+
+            if len(X) != len(y):
+                self.logger.error("X and y have different data sizes in file {}!".format(data_save_file))
+                raise ValueError
+
+            self.logger.info("Number of data points loaded = {}".format(len(y)))
+        return X, y
+
+    def _is_ok(self, x, y):
+        context = x["context"]
+        question = x["question"]
+        candidates = x["candidates"]
+        answer = y
+
+        # check that the candidates are a part of the context
+        for candidate in candidates:
+            candidate_indices = [i for i, x in enumerate(context) if x == candidate]
+            if len(candidate_indices) == 0:
+                self.logger.info("is_ok = False as candidate not in context")
+                return False
+
+        # check that the answer is a part of the context
+        is_answer_part_of_candidates = False
+        for candidate in candidates:
+            if candidate is answer:
+                is_answer_part_of_candidates = True
+                break
+
+        # "and" all the previous checkes
+        # no need to "and" for candidate checking as False is directly returned
+        is_ok = is_answer_part_of_candidates
+        return is_ok
+
 
     def _get_vocabulary_from_files(self, data_files, max_vocab_size, max_data_points):
         vocab = Counter()

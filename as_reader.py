@@ -16,6 +16,8 @@ class ASReader(object):
                  adam_alpha=0.01,
                  minibatch_size=16,
                  n_epochs=10,
+                 gradient_clipping=10,
+                 lookup_init_scale=1.0,
                  logger=None):
 
         self.vocab_size = vocab_size
@@ -27,6 +29,8 @@ class ASReader(object):
         self.adam_alpha = adam_alpha
         self.minibatch_size = minibatch_size
         self.n_epochs = n_epochs
+        self.gradient_clipping = gradient_clipping
+        self.lookup_init_scale = lookup_init_scale
         self.logger = logger
 
         assert(self.gru_input_dim == self.embedding_dim)
@@ -34,7 +38,7 @@ class ASReader(object):
         self.model, self.context_f_rnn, self.context_b_rnn, self.quest_f_rnn, self.quest_b_rnn, self.model_parameters = self._create_model()
 
     def fit(self, X, y):
-        self.train(X, y, self.w2i)
+        self.train(X, y, self.w2i, self.gradient_clipping, self.n_epochs, self.minibatch_size)
 
     def _word_rep(self, w, w2i):
         w_index = w2i[w]
@@ -71,6 +75,8 @@ class ASReader(object):
         for candidate in candidates:
             # get all indices of the candidate in the context
             candidate_indices = [i for i, x in enumerate(context) if x == candidate]
+            if len(candidate_indices) < 1:
+                self.logger.info("context = {} \n candidates = {}".format(context, candidate))
             # calculate the sum of attentions from all the positions where the current candidate occurs
             candidate_score = dy.esum([dy.dot_product(c_bi[i], q_bi) for i in candidate_indices])
             candidate_scores.append(candidate_score)
@@ -78,17 +84,19 @@ class ASReader(object):
         candidate_scores_exp = dy.concatenate([score_exp for score_exp in candidate_scores])
         return candidate_scores_exp
 
-    def train(self, X, y, w2i):
+    def train(self, X, y, w2i, gradient_clipping_threshold, n_epochs, minibatch_size):
         self.logger.info("Starting to train")
 
         trainer = dy.AdamTrainer(self.model, self.adam_alpha)
-        n_minibatches = int(math.ceil(len(y) / self.minibatch_size))
+        trainer.set_clip_threshold(gradient_clipping_threshold)
+        n_minibatches = int(math.ceil(len(y) / minibatch_size))
 
-        for epoch in range(self.n_epochs):
+        examples_seen = 0
+        for epoch in range(n_epochs):
             total_loss = 0.0
             epoch_indices = np.random.permutation(len(y))
             for minibatch in range(n_minibatches):
-                batch_indices = epoch_indices[minibatch * self.minibatch_size:(minibatch + 1) * self.minibatch_size]
+                batch_indices = epoch_indices[minibatch * minibatch_size:(minibatch + 1) * minibatch_size]
 
                 # Renew the computational graph
                 dy.renew_cg()
@@ -97,19 +105,21 @@ class ASReader(object):
                 losses = [dy.pickneglogsoftmax(self._get_loss_exp_for_one_instance(X[batch_indices[i]],
                                                                                    y[batch_indices[i]],
                                                                                    w2i), y_true_id)
-                          for i in range(self.minibatch_size)]
+                          for i in range(minibatch_size)]
                 loss = dy.esum(losses)
                 total_loss += loss.value() # forward computation
                 loss.backward()
                 trainer.update()
-                if minibatch == 500:
-                    self.logger.info('Epoch {}/{}, minibatch = {} , total_loss = {}'.format(epoch + 1,
-                                                                                            self.n_epochs,
-                                                                                            minibatch,
-                                                                                            total_loss))
-            trainer.update_epoch()
-            total_loss /= len(y)
-            self.logger.info('Epoch {}/{}, total_loss = {}'.format(epoch + 1, self.n_epochs, total_loss))
+
+                examples_seen += len(batch_indices)
+                if minibatch % 10 == 0:
+                    self.logger.info('Epoch {}/{}, minibatch = {} , total_loss/examples = {}'.format(epoch + 1,
+                                                                                                     self.n_epochs,
+                                                                                                     minibatch,
+                                                                                                     total_loss/examples_seen))
+            #trainer.update_epoch() # this is depricated
+            #total_loss /= len(y) # should this be done?
+            self.logger.info('Epoch {}/{}, total_loss/examples_seen = {}'.format(epoch + 1, self.n_epochs, total_loss/examples_seen))
 
         self.logger.info("Done training")
 
@@ -150,6 +160,7 @@ class ASReader(object):
         # embedding parameter
         model_parameters = {}
         model_parameters["lookup"] = model.add_lookup_parameters((self.vocab_size,
-                                                                  self.gru_input_dim))
+                                                                  self.gru_input_dim),
+                                                                 dy.UniformInitializer(self.lookup_init_scale))
         self.logger.info('Done creating the model')
         return model, c_fwdRnn, c_bwdRnn, q_fwdRnn, q_bwdRnn, model_parameters
