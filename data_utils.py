@@ -10,13 +10,14 @@ import sys
 reload(sys)
 sys.setdefaultencoding("utf-8")
 
-"""
-logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
-                    datefmt='%d-%m-%Y:%H:%M:%S',
-                    filename='testing/example.log',
-                    level=logging.DEBUG)
-logger = logging.getLogger('data_utils')
-"""
+
+def get_testing_logger():
+    logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
+                        datefmt='%d-%m-%Y:%H:%M:%S',
+                        filename='testing/example.log',
+                        level=logging.DEBUG)
+    return logging.getLogger('data_utils')
+
 
 class CBTData(object):
     def __init__(self,
@@ -232,7 +233,6 @@ class CBTData(object):
         is_ok = is_answer_part_of_candidates
         return is_ok
 
-
     def _get_vocabulary_from_files(self, data_files, max_vocab_size, max_data_points):
         vocab = Counter()
         data_points = 0
@@ -333,6 +333,7 @@ def testing():
     train_files = [os.path.join(testing_dir, f) for f in train_files]
     valid_files = [os.path.join(testing_dir, f) for f in valid_files]
 
+    logger = get_testing_logger()
     logger.debug(" train_files = {} "
                  "\n valid_files = {} ".format(train_files, valid_files))
 
