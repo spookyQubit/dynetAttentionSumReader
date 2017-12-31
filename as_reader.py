@@ -112,11 +112,21 @@ class ASReader(object):
             gradient_clipping_threshold,
             initial_learning_rate,
             n_epochs,
-            minibatch_size):
+            minibatch_size,
+            X_valid=None,
+            y_valid=None,
+            n_times_predict_in_epoch=3):
 
         self.as_reader_trainer.train(X, y, w2i,
                                      self.model, self.model_parameters,
                                      gradient_clipping_threshold,
                                      initial_learning_rate,
                                      n_epochs,
-                                     minibatch_size)
+                                     minibatch_size,
+                                     X_valid, y_valid)
+
+    def get_accuracy(self, X, y, w2i):
+        self.logger.info("Calculating accuracy with {} data points".format(len(y)))
+        accuracy = self.as_reader_trainer.calculate_accuracy(X, y, w2i, self.model, self.model_parameters)
+        self.logger.info("accuracy = {}".format(accuracy))
+        return accuracy

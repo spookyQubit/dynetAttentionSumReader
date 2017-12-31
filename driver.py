@@ -89,8 +89,7 @@ def get_file_locations():
 def get_cbt_data(vocab_file, w2i_file, logger):
     cbt_data = CBTData(vocab_file=vocab_file,
                        w2i_file=w2i_file,
-                       logger=logger,
-                       max_data_points=100)
+                       logger=logger)
     return cbt_data
 
 
@@ -120,9 +119,9 @@ def get_as_reader(cbt_data, logger):
     return as_reader
 
 
-def should_create_new_vocab():
-    SHOULD_CREATE_NEW_VOCAB = True
-    return SHOULD_CREATE_NEW_VOCAB
+def should_load_saved_data():
+    SHOULD_LOAD_SAVED_DATA = True
+    return SHOULD_LOAD_SAVED_DATA
 
 
 def should_load_a_saved_model():
@@ -145,7 +144,13 @@ def setup_training(logger):
     X_train = []
     y_train = []
 
-    if should_create_new_vocab():
+    if should_load_saved_data():
+        logger.info("Loading existing vocab and w2i")
+        cbt_data.load_vocabulary(vocab_file)
+        cbt_data.load_w2i(w2i_file)
+        X_train, y_train = cbt_data.load_data(train_save_file)
+        X_valid, y_valid = cbt_data.load_data(valid_save_file)
+    else:
         logger.info("Creating new vocab and w2i")
 
         # Note that the vocab should be created from train + valid + test files
@@ -157,12 +162,7 @@ def setup_training(logger):
 
         # Get training data
         X_train, y_train = cbt_data.get_data_and_save(train_files, train_save_file)
-        #X_valid, y_valid = cbt_data.get_data_and_save(valid_files, valid_save_file)
-    else:
-        logger.info("Loading existing vocab and w2i")
-        cbt_data.load_vocabulary(vocab_file)
-        cbt_data.load_w2i(w2i_file)
-        X_train, y_train = cbt_data.load_data(train_save_file)
+        X_valid, y_valid = cbt_data.get_data_and_save(valid_files, valid_save_file)
 
     logger.info("Number of training data points = {}".format(len(y_train)))
     logger.info("Vocab size = {}".format(len(cbt_data.get_vocab())))
@@ -175,14 +175,18 @@ def setup_training(logger):
     else:
         as_reader.create_model()
 
-
     # fit the model
+    N_TIMES_PREDICT_IN_EPOCH = 4
     training_args = get_training_args()
-    as_reader.fit(X_train, y_train, cbt_data.get_w2i(),
+    as_reader.fit(X_train[:50000], y_train[:50000], cbt_data.get_w2i(),
                   training_args["GRADIENT_CLIPPING_THRESHOLD"],
                   training_args["ADAM_ALPHA"],
                   training_args["N_EPOCHS"],
-                  training_args["MINIBATCH_SIZE"])
+                  training_args["MINIBATCH_SIZE"],
+                  X_train[:1000], y_train[:1000], N_TIMES_PREDICT_IN_EPOCH)
+
+    accuracy = as_reader.get_accuracy(X_valid, y_valid, cbt_data.get_w2i())
+    logger.info("accuracy = {}".format(accuracy))
 
     as_reader.save_model(model_save_file, model_args_save_file)
 
