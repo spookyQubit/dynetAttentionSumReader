@@ -50,10 +50,7 @@ class ASReaderTrainer(object):
         # calculate the probability of the correct answer as computed by the current model
         context = x["context"]
         answer = y
-        answer_prob_at_all_indices = []
-        for word_prob, word in zip(prob_of_each_word_at_every_pos, context):
-            if word == answer:
-                answer_prob_at_all_indices.append(word_prob)
+        answer_prob_at_all_indices = [w_prob for w_prob, w in zip(prob_of_each_word_at_every_pos, context) if w == answer]
         loss = -dy.log(dy.esum(answer_prob_at_all_indices))
         return loss
 
