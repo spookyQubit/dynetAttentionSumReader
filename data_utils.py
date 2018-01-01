@@ -70,7 +70,7 @@ class CBTData(object):
     def build_new_w2i_from_existing_vocab_and_save(self, w2i_file):
 
         """
-        #Build the word --> index using the self.vocabulary
+        # Build the word --> index using the self.vocabulary
         """
         self.w2i = defaultdict(lambda: self.vocabulary.index(self.unk_tag))
         for i, w in enumerate(self.vocabulary):

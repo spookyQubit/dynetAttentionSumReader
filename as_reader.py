@@ -12,6 +12,7 @@ class ASReader(object):
                  gru_input_dim,
                  gru_hidden_dim,
                  lookup_init_scale=1.0,
+                 number_of_unks=1000,
                  logger=None):
 
         self.logger = logger
@@ -20,7 +21,8 @@ class ASReader(object):
                            "gru_layers": gru_layers,
                            "gru_input_dim": gru_input_dim,
                            "gru_hidden_dim": gru_hidden_dim,
-                           "lookup_init_scale": lookup_init_scale}
+                           "lookup_init_scale": lookup_init_scale,
+                           "number_of_unks": number_of_unks}
 
         self.as_reader_trainer = ASReaderTrainer(logger)
 
@@ -98,13 +100,18 @@ class ASReader(object):
                                                      self.model_args["gru_input_dim"]),
                                                     dy.UniformInitializer(self.model_args["lookup_init_scale"]))
 
+        unk_lookup_params = model.add_lookup_parameters((self.model_args["number_of_unks"],
+                                                         self.model_args["gru_input_dim"]),
+                                                        dy.UniformInitializer(self.model_args["lookup_init_scale"]))
+
         self.logger.info('Done creating the model')
 
         model_parameters = {"c_fwdRnn": c_fwdRnn,
                             "c_bwdRnn": c_bwdRnn,
                             "q_fwdRnn": q_fwdRnn,
                             "q_bwdRnn": q_bwdRnn,
-                            "lookup_params": lookup_params}
+                            "lookup_params": lookup_params,
+                            "unk_lookup_params": unk_lookup_params}
         return model, model_parameters
 
     def fit(self,
@@ -123,7 +130,8 @@ class ASReader(object):
                                      initial_learning_rate,
                                      n_epochs,
                                      minibatch_size,
-                                     X_valid, y_valid)
+                                     X_valid, y_valid,
+                                     n_times_predict_in_epoch)
 
     def get_accuracy(self, X, y, w2i):
         self.logger.info("Calculating accuracy with {} data points".format(len(y)))

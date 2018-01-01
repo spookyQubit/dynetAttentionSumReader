@@ -97,7 +97,7 @@ def get_training_args():
     training_args = {}
     training_args["ADAM_ALPHA"] = 0.001
     training_args["MINIBATCH_SIZE"] = 16
-    training_args["N_EPOCHS"] = 2
+    training_args["N_EPOCHS"] = 10
     training_args["GRADIENT_CLIPPING_THRESHOLD"] = 10.0
     return training_args
 
@@ -109,12 +109,14 @@ def get_as_reader(cbt_data, logger):
     GRU_INPUT_DIM = EMB_DIM
     GRU_HIDDEN_DIM = 128
     LOOKUP_INIT_SCALE = 1.0
+    NUMBER_OF_UNKS = 1000
     as_reader = ASReader(vocab_size=len(cbt_data.get_vocab()),
                          embedding_dim=EMB_DIM,
                          gru_layers=GRU_LAYERS,
                          gru_input_dim=GRU_INPUT_DIM,
                          gru_hidden_dim=GRU_HIDDEN_DIM,
                          lookup_init_scale=LOOKUP_INIT_SCALE,
+                         number_of_unks=NUMBER_OF_UNKS,
                          logger=logger)
     return as_reader
 
@@ -176,17 +178,18 @@ def setup_training(logger):
         as_reader.create_model()
 
     # fit the model
-    N_TIMES_PREDICT_IN_EPOCH = 4
+    N_TIMES_PREDICT_IN_EPOCH = 2
     training_args = get_training_args()
-    as_reader.fit(X_train[:50000], y_train[:50000], cbt_data.get_w2i(),
+    as_reader.fit(X_train, y_train, cbt_data.get_w2i(),
                   training_args["GRADIENT_CLIPPING_THRESHOLD"],
                   training_args["ADAM_ALPHA"],
                   training_args["N_EPOCHS"],
                   training_args["MINIBATCH_SIZE"],
-                  X_train[:1000], y_train[:1000], N_TIMES_PREDICT_IN_EPOCH)
+                  X_valid, y_valid,
+                  N_TIMES_PREDICT_IN_EPOCH)
 
-    accuracy = as_reader.get_accuracy(X_valid, y_valid, cbt_data.get_w2i())
-    logger.info("accuracy = {}".format(accuracy))
+    # accuracy = as_reader.get_accuracy(X_valid, y_valid, cbt_data.get_w2i())
+    # logger.info("accuracy = {}".format(accuracy))
 
     as_reader.save_model(model_save_file, model_args_save_file)
 

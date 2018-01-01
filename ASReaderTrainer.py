@@ -6,13 +6,23 @@ import operator
 
 class ASReaderTrainer(object):
     def __init__(self,
-                 logger):
+                 logger=None):
 
         self.logger = logger
 
-    def _word_rep(self, w, w2i, lookup_param):
-        w_index = w2i[w]
-        return lookup_param[w_index]
+    def _word_rep(self, w, w2i, model_params):
+
+        lookup_param = model_params["lookup_params"]
+        unk_lookup_params = model_params["unk_lookup_params"]
+
+        if w in w2i:
+            w_index = w2i[w]
+            return lookup_param[w_index]
+        else:
+            # word is not in w2i. Use an embedding for unk
+            number_of_unks = unk_lookup_params.shape()[0]
+            random_unk_index = np.random.randint(0, number_of_unks)
+            return dy.lookup(unk_lookup_params, random_unk_index, update=False)
 
     def _get_prob_of_each_word_at_every_pos(self, x, w2i, model_params):
         context = x["context"]
@@ -21,7 +31,7 @@ class ASReaderTrainer(object):
         # encode the context
         c_f_init = model_params["c_fwdRnn"].initial_state()
         c_b_init = model_params["c_bwdRnn"].initial_state()
-        c_wemb = [self._word_rep(w, w2i, model_params["lookup_params"]) for w in context]
+        c_wemb = [self._word_rep(w, w2i, model_params) for w in context]
         c_f_exps = c_f_init.transduce(c_wemb)
         c_b_exps = c_b_init.transduce(reversed(c_wemb))
         # biGru state for context
@@ -30,9 +40,9 @@ class ASReaderTrainer(object):
         # encode the question
         q_f_init = model_params["q_fwdRnn"].initial_state()
         q_b_init = model_params["q_bwdRnn"].initial_state()
-        q_wemb = [self._word_rep(w, w2i, model_params["lookup_params"]) for w in question]
+        q_wemb = [self._word_rep(w, w2i, model_params) for w in question]
         q_f_exps_last = q_f_init.transduce(q_wemb)[-1]
-        q_b_exps_last = q_b_init.transduce(reversed(q_wemb))[0]
+        q_b_exps_last = q_b_init.transduce(reversed(q_wemb))[-1]
         # biGru state for question
         q_bi = dy.concatenate([q_f_exps_last, q_b_exps_last])
 
@@ -54,21 +64,22 @@ class ASReaderTrainer(object):
         loss = -dy.log(dy.esum(answer_prob_at_all_indices))
         return loss
 
-    def _get_minibatch_indices(self, y, epoch_indices, minibatch_size):
+    def _get_minibatch_indices(self, X, epoch_indices, minibatch_size):
 
         minibatches_in_a_batch = 10
         batch_size = minibatch_size * minibatches_in_a_batch
-        n_batches = int(math.ceil(len(y) / batch_size))
+        n_batches = int(math.ceil(len(X) / batch_size))
 
         all_minibatch_indices = []
         for batch in range(n_batches):
             batch_indices = epoch_indices[batch * batch_size:(batch + 1) * batch_size]
-            sorted_batch_indices = sorted([len(y[i]) for i in batch_indices])
+            sorted_batch_indices = [ind for length, ind in sorted([(len(X[j]["context"]), j) for j in batch_indices], key = lambda x:x[0])] # incorrect
 
             n_minibatches = int(math.ceil(len(sorted_batch_indices) / minibatch_size))
             for minibatch in range(n_minibatches):
                 minibatch_indices = sorted_batch_indices[minibatch * minibatch_size:(minibatch + 1) * minibatch_size]
                 all_minibatch_indices.append(minibatch_indices)
+
         return all_minibatch_indices
 
     def train(self,
@@ -94,11 +105,11 @@ class ASReaderTrainer(object):
         trainer.set_clip_threshold(gradient_clipping_threshold)
 
         examples_seen = 0
+        total_loss = 0.0
         for epoch in range(n_epochs):
 
-            total_loss = 0.0
             epoch_indices = np.random.permutation(len(y))
-            all_minibatch_indices = self._get_minibatch_indices(y, epoch_indices, minibatch_size)
+            all_minibatch_indices = self._get_minibatch_indices(X, epoch_indices, minibatch_size)
 
             for minibatch, minibatch_indices in enumerate(all_minibatch_indices):
 
@@ -106,10 +117,10 @@ class ASReaderTrainer(object):
                 dy.renew_cg()
 
                 # calculate the loss
-                losses = [self._get_loss_exp_for_one_instance(X[minibatch_indices[i]],
-                                                              y[minibatch_indices[i]],
+                losses = [self._get_loss_exp_for_one_instance(X[index],
+                                                              y[index],
                                                               w2i,
-                                                              model_params) for i in range(len(minibatch_indices))]
+                                                              model_params) for index in minibatch_indices]
                 loss = dy.esum(losses)
                 total_loss += loss.value()  # forward computation
                 loss.backward()
@@ -117,7 +128,7 @@ class ASReaderTrainer(object):
 
                 examples_seen += len(minibatch_indices)
                 if minibatch % 10 == 0:
-                    self.logger.info('Epoch {}/{}, minibatch = {} , total_loss/examples = {}'.format(epoch + 1,
+                    self.logger.info('Epoch {}/{}, minibatch = {}, total_loss/examples = {}'.format(epoch + 1,
                                                                                                      n_epochs,
                                                                                                      minibatch,
                                                                                                      total_loss / examples_seen))
@@ -147,7 +158,7 @@ class ASReaderTrainer(object):
         context = x["context"]
         for candidate in candidates:
             can_prob_exp = dy.esum([prob for prob, word in zip(prob_of_each_word_at_every_pos, context) if word == candidate])
-            candidate_probs = {candidate: can_prob_exp.value()}
+            candidate_probs.update({candidate: can_prob_exp.value()})
 
         # return the candidate with maximum prob
         return max(candidate_probs.iteritems(), key=operator.itemgetter(1))[0]
@@ -155,10 +166,7 @@ class ASReaderTrainer(object):
     def predict(self, X, w2i, model, model_params):
         self.logger.info("Starting to predict")
 
-        answers = []
-        for x in X:
-            answers.append(self._predict_for_single_example(x, w2i, model_params))
-
+        answers = [self._predict_for_single_example(x, w2i, model_params) for x in X]
         return answers
 
     def calculate_accuracy(self, X, y, w2i, model, model_params):
@@ -169,20 +177,13 @@ class ASReaderTrainer(object):
             raise ValueError
 
         if len(y) != len(X):
-            self.logger.error("len(y) = {} and len(X) = {} dont match.".format(len(y), len(X)))
+            self.logger.error("len(y) = {} and len(X) = {} do not match.".format(len(y), len(X)))
             raise ValueError
 
         predicted_answers = self.predict(X, w2i, model, model_params)
-        for i in range(5):
+        for i in range(3):
             print("predicted_answers = {}".format(predicted_answers[i]))
             print("candidates = {}".format(X[i]["candidates"]))
 
         accuracy = sum(1 for a, b in zip(predicted_answers, y) if a == b) / float(len(y))
         return accuracy
-
-
-
-
-
-
-
