@@ -1,5 +1,5 @@
 from data_utils import CBTData
-from as_reader import ASReader
+from ASReaderModel import ASReader
 import os
 import logging
 

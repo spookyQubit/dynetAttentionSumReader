@@ -7,10 +7,10 @@ from ASReaderTrainer import ASReaderTrainer
 class ASReader(object):
     def __init__(self,
                  vocab_size,
-                 embedding_dim,
-                 gru_layers,
-                 gru_input_dim,
-                 gru_hidden_dim,
+                 embedding_dim=128,
+                 gru_layers=1,
+                 gru_input_dim=128,
+                 gru_hidden_dim=128,
                  lookup_init_scale=1.0,
                  number_of_unks=1000,
                  logger=None):
@@ -116,10 +116,10 @@ class ASReader(object):
 
     def fit(self,
             X, y, w2i,
-            gradient_clipping_threshold,
-            initial_learning_rate,
-            n_epochs,
-            minibatch_size,
+            gradient_clipping_threshold=10.0,
+            initial_learning_rate=0.001,
+            n_epochs=10,
+            minibatch_size=16,
             X_valid=None,
             y_valid=None,
             n_times_predict_in_epoch=3):
