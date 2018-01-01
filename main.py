@@ -145,6 +145,10 @@ def setup_training(logger):
 
     X_train = []
     y_train = []
+    X_valid = []
+    y_valid = []
+    X_test = []
+    y_test = []
 
     if should_load_saved_data():
         logger.info("Loading existing vocab and w2i")
@@ -152,6 +156,7 @@ def setup_training(logger):
         cbt_data.load_w2i(w2i_file)
         X_train, y_train = cbt_data.load_data(train_save_file)
         X_valid, y_valid = cbt_data.load_data(valid_save_file)
+        X_test, y_test = cbt_data.load_data(test_save_file)
     else:
         logger.info("Creating new vocab and w2i")
 
@@ -162,7 +167,6 @@ def setup_training(logger):
         cbt_data.build_new_vocabulary_and_save(train_files,
                                                vocab_file,
                                                keep_top_vocab_percent=KEEP_TOP_VOCAB_PERCENT)
-        logger.info("Vocab size = {}".format(len(cbt_data.get_vocab())))
 
         # Generate w2i
         cbt_data.build_new_w2i_from_existing_vocab_and_save(w2i_file)
@@ -170,8 +174,12 @@ def setup_training(logger):
         # Get training data
         X_train, y_train = cbt_data.get_data_and_save(train_files, train_save_file)
         X_valid, y_valid = cbt_data.get_data_and_save(valid_files, valid_save_file)
+        X_test, y_test = cbt_data.get_data_and_save(test_files, test_save_file)
 
+    logger.info("Vocab size = {}".format(len(cbt_data.get_vocab())))
     logger.info("Number of training data points = {}".format(len(y_train)))
+    logger.info("Number of validation data points = {}".format(len(y_valid)))
+    logger.info("Number of testing data points = {}".format(len(y_test)))
 
     # get the attention sum reader instance
     as_reader = get_as_reader(cbt_data, logger)
@@ -192,8 +200,8 @@ def setup_training(logger):
                   X_valid, y_valid,
                   N_TIMES_PREDICT_IN_EPOCH)
 
-    # accuracy = as_reader.get_accuracy(X_valid, y_valid, cbt_data.get_w2i())
-    # logger.info("accuracy = {}".format(accuracy))
+    test_accuracy = as_reader.get_accuracy(X_test, y_test, cbt_data.get_w2i())
+    logger.info("test_accuracy = {}".format(test_accuracy))
 
     as_reader.save_model(model_save_file, model_args_save_file)
 

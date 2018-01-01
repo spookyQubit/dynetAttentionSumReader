@@ -107,6 +107,7 @@ class ASReaderTrainer(object):
 
         examples_seen = 0
         total_loss = 0.0
+        previous_accuracy = 0.0
         for epoch in range(n_epochs):
 
             epoch_indices = np.random.permutation(len(y))
@@ -134,12 +135,23 @@ class ASReaderTrainer(object):
                                                                                                      minibatch,
                                                                                                      total_loss / examples_seen))
                 if minibatch % int(len(y)/(minibatch_size * n_times_predict_in_epoch)) == 0:
-                    if X_valid is not None and y_valid is not None:
-                        accuracy = self.calculate_accuracy(X_valid, y_valid, w2i, model, model_params)
-                        self.logger.info("accuracy = {}".format(accuracy))
+                    train_accuracy = self.calculate_accuracy(X, y, w2i, model, model_params)
+                    self.logger.info("train_accuracy = {}".format(train_accuracy))
 
-            # trainer.update_epoch() # this is depricated
-            # total_loss /= len(y) # should this be done?
+                    if X_valid is not None and y_valid is not None:
+                        valid_accuracy = self.calculate_accuracy(X_valid, y_valid, w2i, model, model_params)
+                        self.logger.info("valid_accuracy = {}".format(valid_accuracy))
+                        self.logger.info(
+                            "previous accuracy = {}, current accuracy = {}".format(previous_accuracy, valid_accuracy))
+
+                        # implement early cutoff
+                        previous_accuracy = 1.0 # Remove after testing
+                        if previous_accuracy > valid_accuracy:
+                            self.logger.info("previous accuracy > current accuracy. Stopping to train")
+                            return
+                        else:
+                            previous_accuracy = valid_accuracy
+
             self.logger.info('Epoch {}/{}, total_loss/examples_seen = {}'.format(epoch + 1, n_epochs,
                                                                                  total_loss / examples_seen))
 
