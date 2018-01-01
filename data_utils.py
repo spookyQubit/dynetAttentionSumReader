@@ -15,7 +15,7 @@ def get_testing_logger():
     logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
                         datefmt='%d-%m-%Y:%H:%M:%S',
                         filename='testing/example.log',
-                        level=logging.DEBUG)
+                        level=logging.INFO)
     return logging.getLogger('data_utils')
 
 
@@ -26,7 +26,6 @@ class CBTData(object):
                  bos_tag='<s>',
                  eos_tag='</s>',
                  unk_tag='</unk>',
-                 max_vocab_size=None,
                  max_data_points=None,
                  log_every_n_data_points=5000,
                  query_in_line_number=21,
@@ -39,7 +38,6 @@ class CBTData(object):
         self.unk_tag = unk_tag
         self.vocabulary = []
         self.w2i = {}  # will be defaultdict
-        self.max_vocab_size = max_vocab_size
         self.max_data_points = max_data_points
         self.log_every_n_data_points = log_every_n_data_points
         self.query_in_line_number = query_in_line_number
@@ -48,12 +46,11 @@ class CBTData(object):
     def build_new_vocabulary_and_save(self,
                                       data_files,
                                       vocab_file,
-                                      max_vocab_size=None):
+                                      keep_top_vocab_percent):
 
         # get the vocabulary from data_file
-        self.max_vocab_size = max_vocab_size
         self.vocabulary = self._get_vocabulary_from_files(data_files,
-                                                          max_vocab_size,
+                                                          keep_top_vocab_percent,
                                                           self.max_data_points)
 
         # Save the vocabulary in vocab_file
@@ -233,11 +230,12 @@ class CBTData(object):
         is_ok = is_answer_part_of_candidates
         return is_ok
 
-    def _get_vocabulary_from_files(self, data_files, max_vocab_size, max_data_points):
+    def _get_vocabulary_from_files(self, data_files, keep_top_vocab_percent, max_data_points):
         vocab = Counter()
         data_points = 0
         for file_path in data_files:
-            if os.path.exists(file_path) is None:
+            if not os.path.exists(file_path):
+                self.logger.error("file_path = {} to create vocab does not exist".format(file_path))
                 raise ValueError
 
             if (max_data_points is not None) and \
@@ -266,11 +264,17 @@ class CBTData(object):
                         tokenized_sentence = self._process_sentence(line)
                         vocab.update(tokenized_sentence)
 
+
+        """
         if max_vocab_size is not None:
             frequent_words = vocab.most_common(max_vocab_size)
         else:
             frequent_words = vocab.most_common()
 
+        frequent_words = dict(frequent_words).keys()
+        """
+
+        frequent_words = vocab.most_common(int(len(vocab) * keep_top_vocab_percent / float(100)))
         frequent_words = dict(frequent_words).keys()
 
         if self.unk_tag is not None:
@@ -342,14 +346,15 @@ def testing():
 
     cbt_data = CBTData(vocab_file=vocab_file,
                        w2i_file=w2i_file,
-                       query_in_line_number=3,
-                       max_data_points=2)
-    cbt_data.build_new_vocabulary_and_save(train_files, vocab_file)
+                       query_in_line_number=21,
+                       max_data_points=2,
+                       logger=logger)
+    cbt_data.build_new_vocabulary_and_save(train_files, vocab_file, keep_top_vocab_percent=90)
     cbt_data.build_new_w2i_from_existing_vocab_and_save(w2i_file)
 
     logger.debug("vocab = {}".format(cbt_data.get_vocab()))
-    logger.debug("len(vocab) = {}".format(len(cbt_data.get_vocab())))
     logger.debug("w2i = {}".format(cbt_data.get_w2i()))
+    logger.info("len(vocab) = {}".format(len(cbt_data.get_vocab())))
 
     logger.debug("Training data = {}".format(cbt_data.get_data(train_files)))
     logger.debug("Validation data = {}".format(cbt_data.get_data(valid_files)))
@@ -357,8 +362,7 @@ def testing():
 
 def main():
     c = Counter()
-    c.update(["s", "h"])
-
+    c.update(["s", "h", "s", "d", "d", "d", "f", "l"])
     testing()
 
 if __name__ == "__main__":

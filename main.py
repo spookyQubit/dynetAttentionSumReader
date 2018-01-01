@@ -109,7 +109,7 @@ def get_as_reader(cbt_data, logger):
     GRU_INPUT_DIM = EMB_DIM
     GRU_HIDDEN_DIM = 128
     LOOKUP_INIT_SCALE = 1.0
-    NUMBER_OF_UNKS = 1000
+    NUMBER_OF_UNKS = 10
     as_reader = ASReader(vocab_size=len(cbt_data.get_vocab()),
                          embedding_dim=EMB_DIM,
                          gru_layers=GRU_LAYERS,
@@ -122,7 +122,7 @@ def get_as_reader(cbt_data, logger):
 
 
 def should_load_saved_data():
-    SHOULD_LOAD_SAVED_DATA = True
+    SHOULD_LOAD_SAVED_DATA = False
     return SHOULD_LOAD_SAVED_DATA
 
 
@@ -155,9 +155,14 @@ def setup_training(logger):
     else:
         logger.info("Creating new vocab and w2i")
 
-        # Note that the vocab should be created from train + valid + test files
+        # Note that in paper, the vocab is created from train + valid + test files
+        # Here we create only from train (and later from train + valid)
         # Generate vocab
-        cbt_data.build_new_vocabulary_and_save(train_files + valid_files, vocab_file)
+        KEEP_TOP_VOCAB_PERCENT = 90
+        cbt_data.build_new_vocabulary_and_save(train_files,
+                                               vocab_file,
+                                               keep_top_vocab_percent=KEEP_TOP_VOCAB_PERCENT)
+        logger.info("Vocab size = {}".format(len(cbt_data.get_vocab())))
 
         # Generate w2i
         cbt_data.build_new_w2i_from_existing_vocab_and_save(w2i_file)
@@ -167,7 +172,6 @@ def setup_training(logger):
         X_valid, y_valid = cbt_data.get_data_and_save(valid_files, valid_save_file)
 
     logger.info("Number of training data points = {}".format(len(y_train)))
-    logger.info("Vocab size = {}".format(len(cbt_data.get_vocab())))
 
     # get the attention sum reader instance
     as_reader = get_as_reader(cbt_data, logger)
@@ -178,7 +182,7 @@ def setup_training(logger):
         as_reader.create_model()
 
     # fit the model
-    N_TIMES_PREDICT_IN_EPOCH = 2
+    N_TIMES_PREDICT_IN_EPOCH = 4
     training_args = get_training_args()
     as_reader.fit(X_train, y_train, cbt_data.get_w2i(),
                   training_args["GRADIENT_CLIPPING_THRESHOLD"],

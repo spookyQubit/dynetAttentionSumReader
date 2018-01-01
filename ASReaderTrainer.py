@@ -22,7 +22,8 @@ class ASReaderTrainer(object):
             # word is not in w2i. Use an embedding for unk
             number_of_unks = unk_lookup_params.shape()[0]
             random_unk_index = np.random.randint(0, number_of_unks)
-            return dy.lookup(unk_lookup_params, random_unk_index, update=False)
+            # return dy.lookup(unk_lookup_params, random_unk_index, update=False)
+            return dy.lookup(unk_lookup_params, random_unk_index)
 
     def _get_prob_of_each_word_at_every_pos(self, x, w2i, model_params):
         context = x["context"]
