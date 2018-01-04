@@ -1,70 +1,26 @@
 from data_utils import CBTData
 from ASReaderModel import ASReader
+from ASReaderConfig import ASReaderConfig
 import os
 import logging
 
-"""
-To define in cfg
 
-log:
-LOG_LEVEL
-log_file
-
-Data:
-cbtdata_dir = "CBTest/data"
-train_file = "cbtest_NE_train.txt"
-valid_file = "cbtest_NE_valid_200ex.txt"
-test_file = "cbtest_NE_test_2500ex.txt"
-
-generated_data_dir = "generated_data"
-vocab_file = "as_reader_vocab.txt")
-w2i_file = "as_reader_w2i.txt"
-train_save_file = "cbtest_NE_train_save.txt"
-valid_save_file = "cbtest_NE_valid_save.txt"
-test_save_file = "cbtest_NE_test_save.txt"
-
-
-
-max_data_points = 10000
-SHOULD_CREATE_NEW_VOCAB = True
-MODE = "training"/"testing"
-
-# Model parameters
-EMB_DIM = 128
-GRU_LAYERS = 1
-GRU_INPUT_DIM = EMB_DIM
-GRU_HIDDEN_DIM = 128
-
-# training parameters
-ADAM_ALPHA = 0.001
-MINIBATCH_SIZE = 16
-N_EPOCHS = 2
-GRADIENT_CLIPPING_THRESHOLD = 10.0
-LOOKUP_INIT_SCALE = 1.0
-"""
-
-
-def get_logger():
+def get_logger(cfg):
     logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
                         datefmt='%d-%m-%Y:%H:%M:%S',
-                        filename='/home/shantanu/PycharmProjects/attentionSum/as_reader.log',
+                        filename=cfg.get_log_file(),
                         level=logging.INFO)
-    logger = logging.getLogger('data_utils')
+    logger = logging.getLogger(cfg.get_logger())
     return logger
 
 
-def get_mode():
-    MODE = "training"
-    return MODE
-
-
-def get_file_locations():
+def get_file_locations(cfg):
 
     # change this function to read the config file
-    cbtdata_dir = "/home/shantanu/PycharmProjects/attentionSum/CBTest/data"
-    train_file = "cbtest_NE_train.txt"
-    valid_file = "cbtest_NE_valid_2000ex.txt"
-    test_file = "cbtest_NE_test_2500ex.txt"
+    cbtdata_dir = cfg.get_cbt_data_dir()
+    train_file = cfg.get_cbtNE_train_file()
+    valid_file = cfg.get_cbtNE_valid_file()
+    test_file = cfg.get_cbtNE_test_file()
 
     train_files = [train_file]
     valid_files = [valid_file]
@@ -74,64 +30,41 @@ def get_file_locations():
     valid_files = [os.path.join(cbtdata_dir, f) for f in valid_files]
     test_files = [os.path.join(cbtdata_dir, f) for f in test_files]
 
-    generated_data_dir = "/home/shantanu/PycharmProjects/attentionSum/generated_data"
-    vocab_file = os.path.join(generated_data_dir, "as_reader_vocab.txt")
-    w2i_file = os.path.join(generated_data_dir, "as_reader_w2i.txt")
-    train_save_file = os.path.join(generated_data_dir, "cbtest_NE_train_save.txt")
-    valid_save_file = os.path.join(generated_data_dir, "cbtest_NE_valid_save.txt")
-    test_save_file = os.path.join(generated_data_dir, "cbtest_NE_test_save.txt")
-    model_save_file = os.path.join(generated_data_dir, "model_save.txt")
-    model_args_save_file = os.path.join(generated_data_dir, "model_args_save.txt")
+    generated_data_dir = cfg.get_generated_data_dir()
+    vocab_file = os.path.join(generated_data_dir, cfg.get_vocab_file())
+    w2i_file = os.path.join(generated_data_dir, cfg.get_w2i_file())
+    train_save_file = os.path.join(generated_data_dir, cfg.get_train_save_file())
+    valid_save_file = os.path.join(generated_data_dir, cfg.get_valid_save_file())
+    test_save_file = os.path.join(generated_data_dir, cfg.get_test_save_file())
+    model_save_file = os.path.join(generated_data_dir, cfg.get_model_save_file())
+    model_args_save_file = os.path.join(generated_data_dir, cfg.get_model_args_save_file())
 
     return train_files, train_save_file, valid_files, valid_save_file, test_files, test_save_file, vocab_file, w2i_file, model_save_file, model_args_save_file
 
 
-def get_cbt_data(vocab_file, w2i_file, logger):
+def get_cbt_data(vocab_file, w2i_file, cfg, logger):
+
     cbt_data = CBTData(vocab_file=vocab_file,
                        w2i_file=w2i_file,
-                       logger=logger)
+                       logger=logger,
+                       max_data_points=cfg.get_max_data_points())
     return cbt_data
 
 
-def get_training_args():
-    training_args = {}
-    training_args["ADAM_ALPHA"] = 0.001
-    training_args["MINIBATCH_SIZE"] = 16
-    training_args["N_EPOCHS"] = 10
-    training_args["GRADIENT_CLIPPING_THRESHOLD"] = 10.0
-    return training_args
-
-
-def get_as_reader(cbt_data, logger):
+def get_as_reader(cbt_data, cfg, logger):
     # Create ASReader instance
-    EMB_DIM = 128
-    GRU_LAYERS = 1
-    GRU_INPUT_DIM = EMB_DIM
-    GRU_HIDDEN_DIM = 128
-    LOOKUP_INIT_SCALE = 1.0
-    NUMBER_OF_UNKS = 10
     as_reader = ASReader(vocab_size=len(cbt_data.get_vocab()),
-                         embedding_dim=EMB_DIM,
-                         gru_layers=GRU_LAYERS,
-                         gru_input_dim=GRU_INPUT_DIM,
-                         gru_hidden_dim=GRU_HIDDEN_DIM,
-                         lookup_init_scale=LOOKUP_INIT_SCALE,
-                         number_of_unks=NUMBER_OF_UNKS,
+                         embedding_dim=cfg.get_emb_dim(),
+                         gru_layers=cfg.get_gru_layers(),
+                         gru_input_dim=cfg.get_gru_input_dim(),
+                         gru_hidden_dim=cfg.get_gru_hidden_dim(),
+                         lookup_init_scale=cfg.get_lookup_init_scale(),
+                         number_of_unks=cfg.get_num_of_unk(),
                          logger=logger)
     return as_reader
 
 
-def should_load_saved_data():
-    SHOULD_LOAD_SAVED_DATA = False
-    return SHOULD_LOAD_SAVED_DATA
-
-
-def should_load_a_saved_model():
-    SHOULD_LOAD_A_SAVED_MODEL = False
-    return SHOULD_LOAD_A_SAVED_MODEL
-
-
-def setup_training(logger):
+def setup_training(cfg, logger):
     # get files
     train_files, train_save_file, \
         valid_files, valid_save_file, \
@@ -139,9 +72,9 @@ def setup_training(logger):
         vocab_file, \
         w2i_file, \
         model_save_file, \
-        model_args_save_file = get_file_locations()
+        model_args_save_file = get_file_locations(cfg)
 
-    cbt_data = get_cbt_data(vocab_file, w2i_file, logger)
+    cbt_data = get_cbt_data(vocab_file, w2i_file, cfg, logger)
 
     X_train = []
     y_train = []
@@ -150,7 +83,7 @@ def setup_training(logger):
     X_test = []
     y_test = []
 
-    if should_load_saved_data():
+    if cfg.get_should_load_saved_data():
         logger.info("Loading existing vocab and w2i")
         cbt_data.load_vocabulary(vocab_file)
         cbt_data.load_w2i(w2i_file)
@@ -163,10 +96,9 @@ def setup_training(logger):
         # Note that in paper, the vocab is created from train + valid + test files
         # Here we create only from train (and later from train + valid)
         # Generate vocab
-        KEEP_TOP_VOCAB_PERCENT = 90
         cbt_data.build_new_vocabulary_and_save(train_files,
                                                vocab_file,
-                                               keep_top_vocab_percent=KEEP_TOP_VOCAB_PERCENT)
+                                               keep_top_vocab_percent=cfg.get_keep_top_vocab_percentage())
 
         # Generate w2i
         cbt_data.build_new_w2i_from_existing_vocab_and_save(w2i_file)
@@ -182,23 +114,24 @@ def setup_training(logger):
     logger.info("Number of testing data points = {}".format(len(y_test)))
 
     # get the attention sum reader instance
-    as_reader = get_as_reader(cbt_data, logger)
+    as_reader = get_as_reader(cbt_data, cfg, logger)
 
-    if should_load_a_saved_model():
+    if cfg.get_should_load_saved_model():
         as_reader.load_model(model_save_file, model_args_save_file)
     else:
         as_reader.create_model()
 
     # fit the model
-    N_TIMES_PREDICT_IN_EPOCH = 4
-    training_args = get_training_args()
     as_reader.fit(X_train, y_train, cbt_data.get_w2i(),
-                  training_args["GRADIENT_CLIPPING_THRESHOLD"],
-                  training_args["ADAM_ALPHA"],
-                  training_args["N_EPOCHS"],
-                  training_args["MINIBATCH_SIZE"],
+                  cfg.get_gradient_clipping_thresh(),
+                  cfg.get_adam_alpha(),
+                  cfg.get_n_epochs(),
+                  cfg.get_minibatch_size(),
                   X_valid, y_valid,
-                  N_TIMES_PREDICT_IN_EPOCH)
+                  cfg.get_n_times_predict_in_epoch(),
+                  should_save_model_while_training=cfg.get_should_save_model_while_training(),
+                  model_save_file=model_save_file,
+                  model_args_save_file=model_args_save_file)
 
     test_accuracy = as_reader.get_accuracy(X_test, y_test, cbt_data.get_w2i())
     logger.info("test_accuracy = {}".format(test_accuracy))
@@ -206,21 +139,43 @@ def setup_training(logger):
     as_reader.save_model(model_save_file, model_args_save_file)
 
 
-def setup_testing(logger):
-    logger.info("testing not yet implemented")
-    pass
+def setup_testing(cfg, logger):
+    logger.info("testing")
+
+    train_files, train_save_file, \
+    valid_files, valid_save_file, \
+    test_files, test_save_file, \
+    vocab_file, \
+    w2i_file, \
+    model_save_file, \
+    model_args_save_file = get_file_locations(cfg)
+
+    cbt_data = get_cbt_data(vocab_file, w2i_file, cfg, logger)
+
+    # We are assuming here that the test data is already saved
+    X_test, y_test = cbt_data.load_data(test_save_file)
+    logger.info("Number of testing data points = {}".format(len(y_test)))
+
+    # get the attention sum reader instance
+    as_reader = get_as_reader(cbt_data, cfg, logger)
+
+    # We are assuming that the model is already saved
+    as_reader.load_model(model_save_file, model_args_save_file)
+
+    test_accuracy = as_reader.get_accuracy(X_test, y_test, cbt_data.get_w2i())
+    logger.info("test_accuracy = {}".format(test_accuracy))
 
 
 def main():
+    cfg = ASReaderConfig()
 
-    logger = get_logger()
+    logger = get_logger(cfg)
     logger.info("in main")
 
-    mode = get_mode()
-    if mode is "training":
-        setup_training(logger)
-    elif mode is "testing":
-        setup_testing(logger)
+    if cfg.get_execution_mode() == "training":
+        setup_training(cfg, logger)
+    elif cfg.get_execution_mode() == "testing":
+        setup_testing(cfg, logger)
     else:
         logger.error("Unsupported mode")
 

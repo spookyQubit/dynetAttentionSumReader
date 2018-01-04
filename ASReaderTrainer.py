@@ -2,6 +2,7 @@ import dynet as dy
 import math
 import numpy as np
 import operator
+import pickle
 
 
 class ASReaderTrainer(object):
@@ -91,7 +92,11 @@ class ASReaderTrainer(object):
               n_epochs,
               minibatch_size,
               X_valid=None, y_valid=None,
-              n_times_predict_in_epoch=3):
+              n_times_predict_in_epoch=3,
+              should_save_model_while_training=False,
+              model_save_file=None,
+              model_args=None,
+              model_args_save_file=None):
 
         self.logger.info("Starting to train")
 
@@ -107,7 +112,7 @@ class ASReaderTrainer(object):
 
         examples_seen = 0
         total_loss = 0.0
-        previous_accuracy = 0.0
+        previous_valid_accuracy = 0.0
         for epoch in range(n_epochs):
 
             epoch_indices = np.random.permutation(len(y))
@@ -135,22 +140,22 @@ class ASReaderTrainer(object):
                                                                                                      minibatch,
                                                                                                      total_loss / examples_seen))
                 if minibatch % int(len(y)/(minibatch_size * n_times_predict_in_epoch)) == 0:
-                    train_accuracy = self.calculate_accuracy(X, y, w2i, model, model_params)
-                    self.logger.info("train_accuracy = {}".format(train_accuracy))
 
                     if X_valid is not None and y_valid is not None:
                         valid_accuracy = self.calculate_accuracy(X_valid, y_valid, w2i, model, model_params)
                         self.logger.info("valid_accuracy = {}".format(valid_accuracy))
                         self.logger.info(
-                            "previous accuracy = {}, current accuracy = {}".format(previous_accuracy, valid_accuracy))
+                            "previous valid accuracy = {}, current valid accuracy = {}".format(previous_valid_accuracy,
+                                                                                               valid_accuracy))
 
                         # implement early cutoff
-                        previous_accuracy = 1.0 # Remove after testing
-                        if previous_accuracy > valid_accuracy:
+                        if previous_valid_accuracy > valid_accuracy:
                             self.logger.info("previous accuracy > current accuracy. Stopping to train")
                             return
                         else:
-                            previous_accuracy = valid_accuracy
+                            previous_valid_accuracy = valid_accuracy
+                            if should_save_model_while_training:
+                                self.save_model(model, model_save_file, model_args, model_args_save_file)
 
             self.logger.info('Epoch {}/{}, total_loss/examples_seen = {}'.format(epoch + 1, n_epochs,
                                                                                  total_loss / examples_seen))
@@ -194,9 +199,23 @@ class ASReaderTrainer(object):
             raise ValueError
 
         predicted_answers = self.predict(X, w2i, model, model_params)
-        for i in range(3):
-            print("predicted_answers = {}".format(predicted_answers[i]))
-            print("candidates = {}".format(X[i]["candidates"]))
 
         accuracy = sum(1 for a, b in zip(predicted_answers, y) if a == b) / float(len(y))
         return accuracy
+
+    def save_model(self, model, model_save_file, model_args, model_args_save_file):
+        with open(model_save_file, "w+"):
+            # Creating the file if it does not exist and clearing it if it doe exist
+            self.logger.debug("Created/Emptied file {} to save file".format(model_save_file))
+
+        if model is None:
+            self.logger.error("model is none")
+            raise ValueError
+
+        self.logger.info("Saving model in file: {}".format(model_save_file))
+        model.save(model_save_file)
+
+        self.logger.info("Saving model args in file: {}".format(model_args_save_file))
+        with open(model_args_save_file, "w+") as f:
+            pickle.dump(model_args, f)
+        self.logger.info("Done saving model and model args")

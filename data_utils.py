@@ -115,6 +115,7 @@ class CBTData(object):
 
         for file_path in data_files:
             if not os.path.exists(file_path):
+                self.logger.error("{} does not exist".format(file_path))
                 raise ValueError
 
             if self.max_data_points and \

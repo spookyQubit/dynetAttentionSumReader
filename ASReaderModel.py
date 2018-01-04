@@ -26,7 +26,10 @@ class ASReader(object):
 
         self.as_reader_trainer = ASReaderTrainer(logger)
 
-        assert (self.model_args["gru_input_dim"] == self.model_args["embedding_dim"])
+        if self.model_args["gru_input_dim"] != self.model_args["embedding_dim"]:
+            self.logger.error("self.model_args[gru_input_dim] = {}".format(self.model_args["gru_input_dim"]))
+            self.logger.error("self.model_args[embedding_dim] = {}".format(self.model_args["embedding_dim"]))
+            assert (self.model_args["gru_input_dim"] == self.model_args["embedding_dim"])
 
         self.model = None
         self.model_parameters = None
@@ -44,6 +47,8 @@ class ASReader(object):
         with open(model_args_save_file, "r") as f:
             self.model_args = pickle.load(f)
 
+        self.logger.info("loaded model_args = {}".format(self.model_args))
+
         self.logger.info("Loading model from file: {}".format(model_save_file))
         # Call the model parameters in the same order
         # which was used when creating the saved model in file_path
@@ -54,26 +59,13 @@ class ASReader(object):
 
     def save_model(self, model_save_file, model_args_save_file):
 
-        with open(model_save_file, "w+"):
-            # Creating the file if it does not exist and clearing it if it doe exist
-            self.logger.debug("Created/Emptied file {} to save file".format(model_save_file))
-
-        if self.model is None:
-            self.logger.error("model is already none")
-            raise ValueError
-
-        self.logger.info("Saving model in file: {}".format(model_save_file))
-        self.model.save(model_save_file)
-
-        self.logger.info("Saving model args in file: {}".format(model_args_save_file))
-        with open(model_args_save_file, "w+") as f:
-            pickle.dump(self.model_args, f)
-        self.logger.info("Done saving model and model args")
+        self.as_reader_trainer.save_model(self.model, model_save_file,
+                                          self.model_args, model_args_save_file)
 
     def _create_model(self):
         self.logger.info('Creating the model...')
 
-        model = dy.Model()
+        model = dy.ParameterCollection()
 
         # context gru encoders
         c_fwdRnn = dy.GRUBuilder(self.model_args["gru_layers"],
@@ -122,7 +114,10 @@ class ASReader(object):
             minibatch_size=16,
             X_valid=None,
             y_valid=None,
-            n_times_predict_in_epoch=3):
+            n_times_predict_in_epoch=3,
+            should_save_model_while_training=False,
+            model_save_file=None,
+            model_args_save_file=None):
 
         self.as_reader_trainer.train(X, y, w2i,
                                      self.model, self.model_parameters,
@@ -131,7 +126,11 @@ class ASReader(object):
                                      n_epochs,
                                      minibatch_size,
                                      X_valid, y_valid,
-                                     n_times_predict_in_epoch)
+                                     n_times_predict_in_epoch,
+                                     should_save_model_while_training=should_save_model_while_training,
+                                     model_save_file=model_save_file,
+                                     model_args=self.model_args,
+                                     model_args_save_file=model_args_save_file)
 
     def get_accuracy(self, X, y, w2i):
         self.logger.info("Calculating accuracy with {} data points".format(len(y)))
