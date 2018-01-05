@@ -77,5 +77,5 @@ data_utils.py: Class for preparing data in a form needed while training
 ASReaderTrainer.py: Class for training attention sum reader
 ASReaderModel.py: Class creating the model-parameters which are optimized while training
 ```
-The other files, configWriter.py, ASReaderConfig.py and ASReader.cfg are only for documenting/reading and keeping track of hard-coded values, be it file locations or model hyper-parameters. 
+The other files: configWriter.py, ASReaderConfig.py and ASReader.cfg are only for documenting, reading and keeping track of hard-coded values like file locations or model hyper-parameters. 
 
