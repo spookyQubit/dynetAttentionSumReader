@@ -116,39 +116,3 @@ class ASReader(object):
                             "lookup_params": lookup_params,
                             "unk_lookup_params": unk_lookup_params}
         return model, model_parameters
-
-    """
-    def fit(self,
-            X, y, w2i,
-            gradient_clipping_threshold=10.0,
-            initial_learning_rate=0.001,
-            n_epochs=10,
-            minibatch_size=16,
-            X_valid=None,
-            y_valid=None,
-            n_times_predict_in_epoch=3,
-            should_save_model_while_training=False,
-            model_save_file=None,
-            model_args_save_file=None):
-
-        self.as_reader_trainer.train(X, y, w2i,
-                                     self.model, self.model_parameters,
-                                     gradient_clipping_threshold,
-                                     initial_learning_rate,
-                                     n_epochs,
-                                     minibatch_size,
-                                     X_valid, y_valid,
-                                     n_times_predict_in_epoch,
-                                     should_save_model_while_training=should_save_model_while_training,
-                                     model_save_file=model_save_file,
-                                     model_args=self.model_args,
-                                     model_args_save_file=model_args_save_file)
-    """
-
-    """
-    def get_accuracy(self, X, y, w2i):
-        self.logger.info("Calculating accuracy with {} data points".format(len(y)))
-        accuracy = self.as_reader_trainer.calculate_accuracy(X, y, w2i, self.model, self.model_parameters)
-        self.logger.info("accuracy = {}".format(accuracy))
-        return accuracy
-    """
