@@ -1,4 +1,4 @@
-# Attention Sum Model
+# Attention Sum Reader Model
 This is an implementation of the Attention Sum Model which was introduced by Kaldec et al. in the paper titeled [Text Understanding with the Attention Sum Reader Network](https://arxiv.org/pdf/1603.01547.pdf). The paper aims at addressing the machine reading probelm and specifically targets to solve cloze-style question answering challenge. 
 
 ## Dataset
