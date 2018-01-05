@@ -28,7 +28,7 @@ def set_section_data(cfg):
 
     cfg.set('Data', 'keep_top_vocab_percentage', '90.0')
     cfg.set('Data', 'max_data_points')  # Default is none
-    cfg.set('Data', 'should_load_saved_data', 'true')
+    cfg.set('Data', 'should_load_saved_data', 'false')
 
 
 def set_section_execution_mode(cfg):
@@ -52,7 +52,7 @@ def set_section_training_params(cfg):
     cfg.add_section('TrainingParameters')
     cfg.set('TrainingParameters', 'adam_alpha', '0.001')
     cfg.set('TrainingParameters', 'minibatch_size', '16')
-    cfg.set('TrainingParameters', 'n_epochs', '5')
+    cfg.set('TrainingParameters', 'n_epochs', '2')
     cfg.set('TrainingParameters', 'gradient_clipping_thresh', '10.0')
     cfg.set('TrainingParameters', 'lookup_init_scale', '1.0')
     cfg.set('TrainingParameters', 'n_times_predict_in_epoch', '2')

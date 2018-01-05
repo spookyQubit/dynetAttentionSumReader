@@ -1,14 +1,29 @@
+from ASReaderModel import ASReader
 import dynet as dy
 import math
 import numpy as np
 import operator
-import pickle
 
 
 class ASReaderTrainer(object):
     def __init__(self,
+                 vocab_size,
+                 embedding_dim=128,
+                 gru_layers=1,
+                 gru_input_dim=128,
+                 gru_hidden_dim=128,
+                 lookup_init_scale=1.0,
+                 number_of_unks=1000,
                  logger=None):
 
+        self.as_reader_model = ASReader(vocab_size=vocab_size,
+                                        embedding_dim=embedding_dim,
+                                        gru_layers=gru_layers,
+                                        gru_input_dim=gru_input_dim,
+                                        gru_hidden_dim=gru_hidden_dim,
+                                        lookup_init_scale=lookup_init_scale,
+                                        number_of_unks=number_of_unks,
+                                        logger=logger)
         self.logger = logger
 
     def _word_rep(self, w, w2i, model_params):
@@ -86,7 +101,6 @@ class ASReaderTrainer(object):
 
     def train(self,
               X, y, w2i,
-              model, model_params,
               gradient_clipping_threshold,
               initial_learning_rate,
               n_epochs,
@@ -99,6 +113,9 @@ class ASReaderTrainer(object):
               model_args_save_file=None):
 
         self.logger.info("Starting to train")
+
+        model = self.as_reader_model.model
+        model_params = self.as_reader_model.model_parameters
 
         if len(X) != len(y):
             self.logger.error("X and y do not have same size")
@@ -142,7 +159,7 @@ class ASReaderTrainer(object):
                 if minibatch % int(len(y)/(minibatch_size * n_times_predict_in_epoch)) == 0:
 
                     if X_valid is not None and y_valid is not None:
-                        valid_accuracy = self.calculate_accuracy(X_valid, y_valid, w2i, model, model_params)
+                        valid_accuracy = self.calculate_accuracy(X_valid, y_valid, w2i)
                         self.logger.info("valid_accuracy = {}".format(valid_accuracy))
                         self.logger.info(
                             "previous valid accuracy = {}, current valid accuracy = {}".format(previous_valid_accuracy,
@@ -155,7 +172,7 @@ class ASReaderTrainer(object):
                         else:
                             previous_valid_accuracy = valid_accuracy
                             if should_save_model_while_training:
-                                self.save_model(model, model_save_file, model_args, model_args_save_file)
+                                self.as_reader_model.save_model(model_save_file, model_args_save_file)
 
             self.logger.info('Epoch {}/{}, total_loss/examples_seen = {}'.format(epoch + 1, n_epochs,
                                                                                  total_loss / examples_seen))
@@ -181,14 +198,16 @@ class ASReaderTrainer(object):
         # return the candidate with maximum prob
         return max(candidate_probs.iteritems(), key=operator.itemgetter(1))[0]
 
-    def predict(self, X, w2i, model, model_params):
+    def predict(self, X, w2i, model_params):
         self.logger.info("Starting to predict")
 
         answers = [self._predict_for_single_example(x, w2i, model_params) for x in X]
         return answers
 
-    def calculate_accuracy(self, X, y, w2i, model, model_params):
+    def calculate_accuracy(self, X, y, w2i):
         self.logger.info("Starting to calculate accuracy")
+
+        model_params = self.as_reader_model.model_parameters
 
         if len(y) is 0:
             self.logger.error("len(y) = {}".format(0))
@@ -198,24 +217,8 @@ class ASReaderTrainer(object):
             self.logger.error("len(y) = {} and len(X) = {} do not match.".format(len(y), len(X)))
             raise ValueError
 
-        predicted_answers = self.predict(X, w2i, model, model_params)
+        predicted_answers = self.predict(X, w2i, model_params)
 
         accuracy = sum(1 for a, b in zip(predicted_answers, y) if a == b) / float(len(y))
         return accuracy
 
-    def save_model(self, model, model_save_file, model_args, model_args_save_file):
-        with open(model_save_file, "w+"):
-            # Creating the file if it does not exist and clearing it if it doe exist
-            self.logger.debug("Created/Emptied file {} to save file".format(model_save_file))
-
-        if model is None:
-            self.logger.error("model is none")
-            raise ValueError
-
-        self.logger.info("Saving model in file: {}".format(model_save_file))
-        model.save(model_save_file)
-
-        self.logger.info("Saving model args in file: {}".format(model_args_save_file))
-        with open(model_args_save_file, "w+") as f:
-            pickle.dump(model_args, f)
-        self.logger.info("Done saving model and model args")

@@ -1,7 +1,6 @@
 import dynet as dy
 import os
 import pickle
-from ASReaderTrainer import ASReaderTrainer
 
 
 class ASReader(object):
@@ -23,8 +22,6 @@ class ASReader(object):
                            "gru_hidden_dim": gru_hidden_dim,
                            "lookup_init_scale": lookup_init_scale,
                            "number_of_unks": number_of_unks}
-
-        self.as_reader_trainer = ASReaderTrainer(logger)
 
         if self.model_args["gru_input_dim"] != self.model_args["embedding_dim"]:
             self.logger.error("self.model_args[gru_input_dim] = {}".format(self.model_args["gru_input_dim"]))
@@ -59,8 +56,22 @@ class ASReader(object):
 
     def save_model(self, model_save_file, model_args_save_file):
 
-        self.as_reader_trainer.save_model(self.model, model_save_file,
-                                          self.model_args, model_args_save_file)
+        with open(model_save_file, "w+"):
+            # Creating the file if it does not exist and clearing it if it doe exist
+            self.logger.debug("Created/Emptied file {} to save file".format(model_save_file))
+
+        if self.model is None:
+            self.logger.error("model is none")
+            raise ValueError
+
+        self.logger.info("Saving model in file: {}".format(model_save_file))
+        self.model.save(model_save_file)
+
+        self.logger.info("Saving model args in file: {}".format(model_args_save_file))
+        with open(model_args_save_file, "w+") as f:
+            pickle.dump(self.model_args, f)
+        self.logger.info("Done saving model and model args")
+
 
     def _create_model(self):
         self.logger.info('Creating the model...')
@@ -106,6 +117,7 @@ class ASReader(object):
                             "unk_lookup_params": unk_lookup_params}
         return model, model_parameters
 
+    """
     def fit(self,
             X, y, w2i,
             gradient_clipping_threshold=10.0,
@@ -131,9 +143,12 @@ class ASReader(object):
                                      model_save_file=model_save_file,
                                      model_args=self.model_args,
                                      model_args_save_file=model_args_save_file)
+    """
 
+    """
     def get_accuracy(self, X, y, w2i):
         self.logger.info("Calculating accuracy with {} data points".format(len(y)))
         accuracy = self.as_reader_trainer.calculate_accuracy(X, y, w2i, self.model, self.model_parameters)
         self.logger.info("accuracy = {}".format(accuracy))
         return accuracy
+    """

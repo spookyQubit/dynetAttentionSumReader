@@ -1,5 +1,5 @@
 from data_utils import CBTData
-from ASReaderModel import ASReader
+from ASReaderTrainer import ASReaderTrainer
 from ASReaderConfig import ASReaderConfig
 import os
 import logging
@@ -51,17 +51,17 @@ def get_cbt_data(vocab_file, w2i_file, cfg, logger):
     return cbt_data
 
 
-def get_as_reader(cbt_data, cfg, logger):
+def get_as_reader_trainer(cbt_data, cfg, logger):
     # Create ASReader instance
-    as_reader = ASReader(vocab_size=len(cbt_data.get_vocab()),
-                         embedding_dim=cfg.get_emb_dim(),
-                         gru_layers=cfg.get_gru_layers(),
-                         gru_input_dim=cfg.get_gru_input_dim(),
-                         gru_hidden_dim=cfg.get_gru_hidden_dim(),
-                         lookup_init_scale=cfg.get_lookup_init_scale(),
-                         number_of_unks=cfg.get_num_of_unk(),
-                         logger=logger)
-    return as_reader
+    as_reader_trainer = ASReaderTrainer(vocab_size=len(cbt_data.get_vocab()),
+                                        embedding_dim=cfg.get_emb_dim(),
+                                        gru_layers=cfg.get_gru_layers(),
+                                        gru_input_dim=cfg.get_gru_input_dim(),
+                                        gru_hidden_dim=cfg.get_gru_hidden_dim(),
+                                        lookup_init_scale=cfg.get_lookup_init_scale(),
+                                        number_of_unks=cfg.get_num_of_unk(),
+                                        logger=logger)
+    return as_reader_trainer
 
 
 def setup_training(cfg, logger):
@@ -114,29 +114,29 @@ def setup_training(cfg, logger):
     logger.info("Number of testing data points = {}".format(len(y_test)))
 
     # get the attention sum reader instance
-    as_reader = get_as_reader(cbt_data, cfg, logger)
+    as_reader_trainer = get_as_reader_trainer(cbt_data, cfg, logger)
 
     if cfg.get_should_load_saved_model():
-        as_reader.load_model(model_save_file, model_args_save_file)
+        as_reader_trainer.as_reader_model.load_model(model_save_file, model_args_save_file)
     else:
-        as_reader.create_model()
+        as_reader_trainer.as_reader_model.create_model()
 
     # fit the model
-    as_reader.fit(X_train, y_train, cbt_data.get_w2i(),
-                  cfg.get_gradient_clipping_thresh(),
-                  cfg.get_adam_alpha(),
-                  cfg.get_n_epochs(),
-                  cfg.get_minibatch_size(),
-                  X_valid, y_valid,
-                  cfg.get_n_times_predict_in_epoch(),
-                  should_save_model_while_training=cfg.get_should_save_model_while_training(),
-                  model_save_file=model_save_file,
-                  model_args_save_file=model_args_save_file)
+    as_reader_trainer.train(X=X_train, y=y_train, w2i=cbt_data.get_w2i(),
+                            gradient_clipping_threshold=cfg.get_gradient_clipping_thresh(),
+                            initial_learning_rate=cfg.get_adam_alpha(),
+                            n_epochs=cfg.get_n_epochs(),
+                            minibatch_size=cfg.get_minibatch_size(),
+                            X_valid=X_valid, y_valid=y_valid,
+                            n_times_predict_in_epoch=cfg.get_n_times_predict_in_epoch(),
+                            should_save_model_while_training=cfg.get_should_save_model_while_training(),
+                            model_save_file=model_save_file,
+                            model_args_save_file=model_args_save_file)
 
-    test_accuracy = as_reader.get_accuracy(X_test, y_test, cbt_data.get_w2i())
+    test_accuracy = as_reader_trainer.calculate_accuracy(X_test, y_test, cbt_data.get_w2i())
     logger.info("test_accuracy = {}".format(test_accuracy))
 
-    as_reader.save_model(model_save_file, model_args_save_file)
+    as_reader_trainer.as_reader_model.save_model(model_save_file, model_args_save_file)
 
 
 def setup_testing(cfg, logger):
@@ -157,12 +157,12 @@ def setup_testing(cfg, logger):
     logger.info("Number of testing data points = {}".format(len(y_test)))
 
     # get the attention sum reader instance
-    as_reader = get_as_reader(cbt_data, cfg, logger)
+    as_reader_trainer = get_as_reader_trainer(cbt_data, cfg, logger)
 
     # We are assuming that the model is already saved
-    as_reader.load_model(model_save_file, model_args_save_file)
+    as_reader_trainer.as_reader_model.load_model(model_save_file, model_args_save_file)
 
-    test_accuracy = as_reader.get_accuracy(X_test, y_test, cbt_data.get_w2i())
+    test_accuracy = as_reader_trainer.calculate_accuracy(X_test, y_test, cbt_data.get_w2i())
     logger.info("test_accuracy = {}".format(test_accuracy))
 
 
