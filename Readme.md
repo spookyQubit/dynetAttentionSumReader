@@ -37,7 +37,7 @@ Two embeddings are constructed: context (document) embedding and question embedd
 For the detail of the model, please refer to the original paper. 
 
 ## Dynet
-Dynet which was introduced by [Neubig et al.](https://arxiv.org/abs/1701.03980) is used to implement the attention sum model here. From a personal view, the syntax of Dynet allows for simpler, easily refactorable and writing reusable code, allowing for good software development practices. Using Dynet's auto-batching functionality, the complexity of NLP models, where the input sentences/chars are inevitably of differnet size, greatly reduces code complexity. Also it allows to write a more Pythonic code, for example using list comprehentions instead of scan functions as in Theano/Tensorflow. 
+Dynet, which was introduced by [Neubig et al.](https://arxiv.org/abs/1701.03980), is used to implement the attention sum model here. From a personal view, the syntax of Dynet allows for simpler, easily refactorable and writing reusable code, allowing for good software development practices. Using Dynet's auto-batching functionality, the complexity of NLP models, where the input sentences/chars are inevitably of differnet size, greatly reduces code complexity. Also it allows to write a more Pythonic code, for example using list comprehentions instead of scan functions as in Theano/Tensorflow. 
 
 ## Further improvement
 * I have not yet been able to figure out saving/loading in Dynet. 
