@@ -42,10 +42,10 @@ Dynet which was introduced by [Neubig et al.](https://arxiv.org/abs/1701.03980) 
 ## Further improvement
 * I have not yet been able to figure out saving/loading in Dynet. 
 * One thing to try is to feed the question embedding to the initial state of the contextual embedding. This mimics the intuition that it is easier to find the answer if one reads the question first and then reads the passage with the aim to only answer the question and not attempt to understand all the un-necessary contexts which might be present in the passage.
-* Although Dynet's auto-batching is good, as Dynet's document suggests, it would help to explicitly use batching to further spped up training.  
+* Although Dynet's auto-batching is good, as Dynet's document suggests, it would help to explicitly use batching to further speed up training.  
 
 ## Result
-As each sample has 10 candidates to choose from, a model which chooses the answer in random will acheive atleast 10% accuracy. We acheived 59.29 percent accuracy on the CBT-NE dataset, significantly better than the baseline 10%. The reason for the accuracy to be lesser than that reported in the original paper (68.6%) is because we used smaller models, thus having lesser model capacity, to help speedup training.
+As each sample has 10 candidates to choose from, a model which chooses the answer in random will acheive atleast 10% accuracy. We acheived **59.29%** accuracy on the CBT-NE dataset, indicating the model did something as its doing better than the base line of 10%!. A reason for the accuracy to be lesser than **68.6%**, as reported in the original paper, can be because we used a smaller model having lesser model capacity. In the current implementation, the GRU hidden layer and the embedding dimention each had as size of 128, whereas in the original paper, the best accuracy is reported with size of 384. We used a smaller model to help speedup training.
 
 ## Parameters
 The above accuracy was acheived using the following parameters:
