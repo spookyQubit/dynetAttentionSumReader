@@ -45,7 +45,7 @@ Dynet, which was introduced by [Neubig et al.](https://arxiv.org/abs/1701.03980)
 * Although Dynet's auto-batching is good, as Dynet's document suggests, it would help to explicitly use batching to further speed up training.  
 
 ## Result
-As each sample has 10 candidates to choose from, a model which chooses the answer at random will acheive atleast 10% accuracy. We achieved **59.29%** test accuracy on the CBT-NE dataset, indicating the model has learnt something as it is definitely doing better than the base line of 10% (yay)! A reason for the accuracy to be lesser than **68.6%**, as reported in the original paper, can be because we used a smaller model having lesser model capacity. In the current implementation, the GRU hidden layer and the embedding dimention each had as size of 128, whereas in the original paper, the best accuracy is reported with a size of 384. We used a smaller model to help speedup training.
+As each sample has 10 candidates to choose from, a model which chooses the answer at random will acheive atleast 10% accuracy. We achieved **59.29%** test accuracy on the CBT-NE dataset, indicating the model has learnt something as it is definitely doing better than the base line of 10% (yay)! A reason for the accuracy to be lesser than **68.6%**, as reported in the original paper, can be because we used a smaller model having lesser model capacity. In the current implementation, the GRU hidden layer and the embedding dimention each had a size of 128, whereas in the original paper, the best accuracy is reported with a size of 384. We used a smaller model to help speedup training.
 
 ## Parameters
 The above accuracy was acheived using the following parameters:
