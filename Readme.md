@@ -40,7 +40,7 @@ For the detail of the model, please refer to the original paper.
 Dynet, which was introduced by [Neubig et al.](https://arxiv.org/abs/1701.03980), is used to implement the attention sum model here. From a personal view, the syntax of Dynet allows for simpler, easily refactorable and writing reusable code, allowing for good software development practices. Using Dynet's auto-batching functionality, the complexity of NLP models, where the input sentences/chars are inevitably of differnet size, greatly reduces code complexity. Also it allows to write a more Pythonic code, for example using list comprehentions instead of scan functions as in Theano/Tensorflow. 
 
 ## Further improvement
-* I have not yet been able to figure out saving/loading in Dynet. 
+* I have not yet been able to figure out saving/loading in Dynet (pull requests/suggestions are very welcome). 
 * One thing to try is to feed the question embedding to the initial state of the contextual embedding. This mimics the intuition that it is easier to find the answer if one reads the question first and then reads the passage with the aim to only answer the question and not attempt to understand all the un-necessary contexts which might be present in the passage.
 * Although Dynet's auto-batching is good, as Dynet's document suggests, it would help to explicitly use batching to further speed up training.  
 
