@@ -4,7 +4,7 @@ This is an implementation of the Attention Sum Model which was introduced by Kal
 ## Dataset
 We train the model on the Children's Book Test (CBT) dataset. Each datapoint consists of twenty-one consecutive lines extracted from a book. The first twenty lines form the context. From the twenty first line, one named-entity is removed. The purpose of the model is to predict this missing named-entity out a list of possible candidates. 
 
-An example datapoint:
+An example datapoint (Context in the first twenty lines. Sentence with missing named-entity, the answer and the candidates on the twenty-first line):
 ```
 1 Then he remembered the awful curse of the oldest fairy , and was sorry for the rudeness of the queen .
 2 And when the prince , after having his ears boxed , said that `` force was no argument , '' the king went away in a rage .
@@ -28,3 +28,10 @@ An example datapoint:
 20 But Prigio nearly got the country into several wars by being too clever for the foreign ambassadors .
 21 Now , as Pantouflia was a rich , lazy country , which hated fighting , this was very unpleasant , and did not make people love Prince XXXXX any better .     Prigio          Court|Enrico|Exchequer|German|Prigio|Royal|cricketer|p11.jpg|second|turnip-tops
 ```
+
+Note that the data is alread tokenized and very little pre-processing is necessary.
+
+## Attention Sum Model
+Two embeddings are constructed: context embedding and question embedding. These embedding are calculated using GRUs. A dot product between the contextual embedding of each word in the context is then calculated with the question embedding. This dot product gives the score for each word to be the correct answer of the question. Using a softmax function, the scores are converted to probabilities. This gives the probability of each word at a given position in the document to be the answer. The probabilities for a word are then summed over all positions in the document, given the probability of the word (irrespective of where it occurs in the ducument) to be the answer.    
+
+The model calculates the contextual embedding of each word in the context.  
