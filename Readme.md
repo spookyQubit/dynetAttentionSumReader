@@ -31,6 +31,18 @@ An example datapoint (Context in the first twenty lines. Sentence with missing n
 
 Note that the data is alread tokenized and very little pre-processing is necessary. There were 107944 training samples, 1991 validation samples and 2491 test samples. After keeping top 90 percent most frequent words from training data, the vocabulary size was 54235. 
 
+As outlined by [Kadlec et al.](https://github.com/rkadlec/asreader/blob/master/data/prepare-cbt-data.sh), the CBT dataset can be downloaded using the following instructions:
+```
+# prepares the Children's Book Test datasets
+
+# get CBT data
+wget http://www.thespermwhale.com/jaseweston/babi/CBTest.tgz
+
+# unpack all files
+tar -zxvf CBTest.tgz
+rm CBTest.tgz
+```
+
 ## Attention Sum Model
 Two embeddings are constructed: context (document) embedding and question embedding. These embedding are calculated using bi-directional GRUs. A dot product between the contextual embedding of each word in the context is then calculated with the question embedding (For question embedding, only the output of the last RNN unit is used). This dot product gives the score for each word to be the correct answer of the question. Using a softmax function, the scores are converted to probabilities. This gives the probability of each word at a given position in the document to be the answer. The probabilities for a word are then summed over all positions in the document, given the probability of the word (irrespective of where it occurs in the ducument) to be the answer. In doing this, we also maintain a lookup table for each word in the vocabulary. This lookup table provides the embedding necessary for the input to the GRUs. The question and the context embeddings share the same lookup table. 
 
