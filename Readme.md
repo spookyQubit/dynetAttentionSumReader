@@ -1,8 +1,8 @@
-# Attention Sum Model
-This is an implementation of the Attention Sum Model which was introduced by Kaldec et al. in the paper titeled [Text Understanding with the Attention Sum Reader Network](https://arxiv.org/pdf/1603.01547.pdf). The paper aims at addressing the machine reading probelm and specifically targets to solve cloze-style question-answering challenge. 
+# Attention Sum Reader Model
+This is an implementation of the Attention Sum Reader Model which was introduced by Kadlec et al. in the paper titled [Text Understanding with the Attention Sum Reader Network](https://arxiv.org/pdf/1603.01547.pdf). The paper aims at addressing the machine reading problem and specifically targets to solve cloze-style question answering challenge. 
 
 ## Dataset
-We train the model on the Children's Book Test (CBT) dataset. Each datapoint consists of twenty-one consecutive lines extracted from a book. The first twenty lines form the context. From the twenty first line, one named-entity is removed. The purpose of the model is to predict this missing named-entity out a list of possible candidates. 
+We train the model on the Children's Book Test (CBT) dataset. Each datapoint consists of twenty-one consecutive lines extracted from a book. The first twenty lines form the context. From the twenty first line, one named-entity is removed. The purpose of the model is to predict this missing named-entity out of a list of possible candidates. 
 
 An example datapoint (Context in the first twenty lines. Sentence with missing named-entity, the answer and the candidates on the twenty-first line):
 ```
@@ -37,15 +37,15 @@ Two embeddings are constructed: context (document) embedding and question embedd
 For the detail of the model, please refer to the original paper. 
 
 ## Dynet
-Dynet which was introduced by [Neubig et al.](https://arxiv.org/abs/1701.03980) is used to implement the attention sum model here. From a personal view, the syntax of Dynet allows for simpler, easily refactorable and writing reusable code, allowing for good software development practices. Using Dynet's auto-batching functionality, the complexity of NLP models, where the input sentences/chars are inevitably of differnet size, greatly reduces code complexity. Also it allows to write a more Pythonic code, for example using list comprehentions instead of scan functions as in Theano/Tensorflow. 
+Dynet, which was introduced by [Neubig et al.](https://arxiv.org/abs/1701.03980), is used to implement the attention sum model here. From a personal view, the syntax of Dynet allows for simpler, easily refactorable and writing reusable code, allowing for good software development practices. Using Dynet's auto-batching functionality, the complexity of NLP models, where the input sentences/chars are inevitably of differnet size, greatly reduces code complexity. Also it allows to write a more Pythonic code, for example using list comprehensions instead of scan functions as in Theano/Tensorflow. 
 
 ## Further improvement
-* I have not yet been able to figure out saving/loading in Dynet. 
+* I have not yet been able to figure out saving/loading in Dynet (pull requests/suggestions are very welcome). 
 * One thing to try is to feed the question embedding to the initial state of the contextual embedding. This mimics the intuition that it is easier to find the answer if one reads the question first and then reads the passage with the aim to only answer the question and not attempt to understand all the un-necessary contexts which might be present in the passage.
-* Although Dynet's auto-batching is good, as Dynet's document suggests, it would help to explicitly use batching to further spped up training.  
+* Although Dynet's auto-batching is good, as Dynet's document suggests, it would help to explicitly use batching to further speed up training.  
 
 ## Result
-As each sample has 10 candidates to choose from, a model which chooses the answer in random will acheive atleast 10% accuracy. We acheived 59.29 percent accuracy on the CBT-NE dataset, significantly better than the baseline 10%. The reason for the accuracy to be lesser than that reported in the original paper (68.6%) is because we used smaller models, thus having lesser model capacity, to help speedup training.
+As each sample has 10 candidates to choose from, a model which chooses the answer at random will acheive atleast 10% accuracy. We achieved **59.29%** test accuracy on the CBT-NE dataset, indicating the model has learnt something as it is definitely doing better than the base line of 10% (yay)! A reason for the accuracy to be lesser than **68.6%**, as reported in the original paper, can be because we used a smaller model having lesser model capacity. In the current implementation, the GRU hidden layer and the embedding dimention each had a size of 128, whereas in the original paper, the best accuracy is reported with a size of 384. We used a smaller model to help speedup training.
 
 ## Parameters
 The above accuracy was acheived using the following parameters:
@@ -77,5 +77,5 @@ data_utils.py: Class for preparing data in a form needed while training
 ASReaderTrainer.py: Class for training attention sum reader
 ASReaderModel.py: Class creating the model-parameters which are optimized while training
 ```
-The other files, configWriter.py, ASReaderConfig.py and ASReader.cfg are only for documenting/reading and keeping track of hard-coded values, be it file locations or model hyper-parameters. 
+The other files: configWriter.py, ASReaderConfig.py and ASReader.cfg are only for documenting, reading and keeping track of hard-coded values like file locations, training-parameters and model hyper-parameters. 
 
